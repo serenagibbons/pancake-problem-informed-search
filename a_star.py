@@ -1,54 +1,104 @@
-from heapq import heappush, heappop
+class Node:
+    """Node class for A* Search pancake stack configurations"""
+
+    def __init__(self, parent=None, pancakes=None):
+        self.parent = parent
+        self.pancakes = pancakes
+
+        self.f = 0
+        self.g = 0
+        self.h = 0
+    
+    def __eq__(self, other):
+        return self.pancakes == other.pancakes
 
 def flip(pancakes, i):
-  """Flips the sublist of pancakes from index 0 to index i (inclusive)."""
-  return pancakes[:i + 1][::-1] + pancakes[i + 1:]
-
-def is_sorted(pancakes):
-  """Check if the pancakes are sorted in ascending order."""
-  return all(pancakes[i] <= pancakes[i + 1] for i in range(len(pancakes) - 1))
+    """Flips the sublist of pancakes from index 0 to index i (inclusive)."""
+    return pancakes[:i + 1][::-1] + pancakes[i + 1:]
 
 def gap_heuristic(pancakes):
-  """Gap Heuristic: Count the number of pancake stack positions for which 
-  the pancake at that position is not of adjacent size to the pancake below."""
-  gap = 0
-  for i in range(len(pancakes) - 1):
-    if abs(pancakes[i] - pancakes[i + 1]) > 1:
-      gap += 1
-  return gap
+    """Gap Heuristic: Count the number of pancake stack positions for which 
+    the pancake at that position is not of adjacent size to the pancake below."""
+    gap = 0
+    for i in range(len(pancakes) - 1):
+        if abs(pancakes[i] - pancakes[i + 1]) > 1:
+            gap += 1
+    return gap
 
 def a_star(pancakes):
-  """Solve the pancake problem using the A* search algorithm."""
-  cost = 0
-  gap = gap_heuristic(pancakes)
-  estimated_cost = cost + gap
-  frontier = [(estimated_cost, cost, pancakes)]  # (total cost, pancake configuration)
-  visited = []
+    """
+    Solves the pancake problem using the A* Search algorithm.
+    
+    Returns the minimum number of flips, the number of nodes explored, and a list of pancake stack configurations that lead to the solution.
+    """
+    # create start node
+    start_node = Node(None, pancakes)
+    start_node.g = start_node.h = start_node.f = 0
 
-  while frontier:
-    # for i in range(len(frontier)):
-    #   print(frontier[i])
-    estimated_cost, cost, current_state = heappop(frontier)
-    print("current cost: " + str(cost))
-    print("current state: " + str(current_state))
-    print()
+    # create end node
+    end_pancakes = []
+    for i in range(len(pancakes)):
+        end_pancakes.append(i+ 1)
+    end_node = Node(None, end_pancakes)
+    end_node.g = end_node.h = end_node.f = 0
 
-    # if we already visited the current pancake state, continue
-    if current_state in visited:
-    #   print("visited")
-      continue
+    # initialize frontier and visited nodes list
+    frontier = []
+    visited = []
 
-    # add current_state to visited list
-    visited.append(current_state)
+    # add start node to the frontier
+    frontier.append(start_node)
 
-    if is_sorted(current_state):
-      return cost, current_state
+    # search the frontier
+    while len(frontier) > 0:
 
-    # get possible pancake stack states and gap heuristics
-    for i in range(1, len(current_state)):      
-      next_state = flip(current_state.copy(), i)
-      new_cost = cost + 1 
-      new_gap = gap_heuristic(next_state)
-      heappush(frontier, (new_cost + new_gap, new_cost, next_state))
-  
-  return cost, current_state
+        # get the current node
+        current_node = frontier[0]
+        current_index = 0
+        for index, item in enumerate(frontier):
+            if item.f < current_node.f:
+                current_node = item
+                current_index = index
+
+        # pop current off frontier and add to visted list
+        frontier.pop(current_index)
+        visited.append(current_node)
+
+        # check if the current node is the end
+        if current_node == end_node:
+            path = []
+            current = current_node
+            while current is not None:
+                path.append(current.pancakes)
+                current = current.parent
+            # return cost and reversed path
+            return current_node.g, len(visited), path[::-1] 
+
+        # generate children pancake stack configurations
+        children = []
+        for i in range(1, len(current_node.pancakes)):      
+           next_state = flip(current_node.pancakes.copy(), i)
+           # create new node
+           new_node = Node(pancakes=next_state, parent=current_node)
+           # add to children list
+           children.append(new_node)
+
+        # iterate through children
+        for child in children:
+            # child is on the visited list
+            for visited_child in visited:
+                if child == visited_child:
+                    continue
+
+            # set f, g, and h values
+            child.g = current_node.g + 1
+            child.h = gap_heuristic(child.pancakes)
+            child.f = child.g + child.h
+
+            # child is already in the frontier
+            for node in frontier:
+                if child == node and child.g > node.g:
+                    continue
+
+            # aa the child to the frontier
+            frontier.append(child)

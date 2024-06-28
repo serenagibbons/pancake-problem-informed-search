@@ -1,41 +1,90 @@
-from heapq import heappush, heappop
+class Node:
+    """Node class for UCS pancake stack configurations"""
+
+    def __init__(self, parent=None, pancakes=None):
+        self.parent = parent
+        self.pancakes = pancakes
+        self.cost = 0
+    
+    def __eq__(self, other):
+        return self.pancakes == other.pancakes
 
 def flip(pancakes, i):
-  """Flips the sublist of pancakes from index 0 to index i (inclusive)."""
-  return pancakes[:i + 1][::-1] + pancakes[i + 1:]
-
-def is_sorted(pancakes):
-  """Check if the pancakes are sorted in ascending order."""
-  return all(pancakes[i] <= pancakes[i + 1] for i in range(len(pancakes) - 1))
+    """Flips the sublist of pancakes from index 0 to index i (inclusive)."""
+    return pancakes[:i + 1][::-1] + pancakes[i + 1:]
 
 def uniform_cost_search(pancakes):
-  """Solve the pancake problem using the A* search algorithm."""
-  cost = 0
-  frontier = [(cost, pancakes)]  # (total cost, pancake configuration)
-  visited = []
+    """
+    Solves the pancake problem using the Uniform Cost Search algorithm.
+    
+    Returns the minimum number of flips, the number of nodes explored, and a list of pancake stack configurations that lead to the solution.
+    """
+    # create start node
+    start_node = Node(None, pancakes)
+    start_node.cost = 0
 
-  while frontier:
-    # for i in range(len(frontier)):
-    #   print(frontier[i])
-    cost, current_state = heappop(frontier)
-    # print("current cost: " + str(cost))
-    # print("current state: " + str(current_state))
-    # print()
+    # create end node
+    end_pancakes = []
+    for i in range(len(pancakes)):
+        end_pancakes.append(i+ 1)
+    end_node = Node(None, end_pancakes)
+    end_node.cost = 0
 
-    # if we already visited the current pancake state, continue
-    if current_state in visited:
-      continue
+    # initialize frontier and visited nodes list
+    frontier = []
+    visited = []
 
-    # add current_state to visited list
-    visited.append(current_state)
+    # add start node to the frontier
+    frontier.append(start_node)
 
-    if is_sorted(current_state):
-      return cost, current_state
+    # search the frontier
+    while len(frontier) > 0:
 
-    # get possible pancake stack states
-    for i in range(1, len(current_state)):      
-      next_state = flip(current_state.copy(), i)
-      new_cost = cost + 1 
-      heappush(frontier, (new_cost, next_state))
-  
-  return cost, current_state
+        # get the current node
+        current_node = frontier[0]
+        current_index = 0
+        for index, item in enumerate(frontier):
+            if item.cost < current_node.cost:
+                current_node = item
+                current_index = index
+
+        # pop current node off frontier and add to visted list
+        frontier.pop(current_index)
+        visited.append(current_node)
+
+        # check if the current node is the end
+        if current_node == end_node:
+            path = []
+            current = current_node
+            while current is not None:
+                path.append(current.pancakes)
+                current = current.parent
+            # return cost, number of nodes explored, and reversed path
+            return current_node.cost, len(visited), path[::-1] 
+
+        # generate children pancake stack configurations
+        children = []
+        for i in range(1, len(current_node.pancakes)):      
+           next_state = flip(current_node.pancakes.copy(), i)
+           # create new node
+           new_node = Node(pancakes=next_state, parent=current_node)
+           # add to children list
+           children.append(new_node)
+
+        # iterate through children
+        for child in children:
+            # child is on the visited list
+            for visited_child in visited:
+                if child == visited_child:
+                    continue
+
+            # set cost value
+            child.cost = current_node.cost + 1
+
+            # child is already in the frontier
+            for node in frontier:
+                if child == node and child.cost > node.cost:
+                    continue
+
+            # aa the child to the frontier
+            frontier.append(child)
