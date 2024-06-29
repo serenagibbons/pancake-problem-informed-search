@@ -43,9 +43,10 @@ def uniform_cost_search(pancakes):
         # get the current node
         current_node = frontier[0]
         current_index = 0
-        for index, item in enumerate(frontier):
-            if item.cost < current_node.cost:
-                current_node = item
+        for index, node in enumerate(frontier):
+            # find the node with the lowest cost
+            if node.cost < current_node.cost:
+                current_node = node
                 current_index = index
 
         # pop current node off frontier and add to visted list
@@ -73,18 +74,16 @@ def uniform_cost_search(pancakes):
 
         # iterate through children
         for child in children:
-            # child is on the visited list
-            for visited_child in visited:
-                if child == visited_child:
-                    continue
-
             # set cost value
             child.cost = current_node.cost + 1
 
-            # child is already in the frontier
-            for node in frontier:
-                if child == node and child.cost > node.cost:
-                    continue
-
-            # aa the child to the frontier
-            frontier.append(child)
+            # if child is not in frontier or visited
+            if child not in frontier or child not in visited:
+                frontier.append(child)
+            # else if child is in frontier with higher cost
+            else:
+                for node in frontier:
+                    if child == node and child.cost < node.cost:
+                        # replace node in frontier with child
+                        frontier.remove(node)
+                        frontier.append(child)
